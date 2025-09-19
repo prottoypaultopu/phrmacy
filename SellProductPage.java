@@ -1,24 +1,37 @@
 import java.awt.*;
 import java.io.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
 
 public class SellProductPage extends JFrame {
-
     private JTextField searchField;
     private JComboBox<String> productComboBox;
     private JLabel resultLabel;
     private JTextField quantityField;
+    private JTable orderTable;
+    private DefaultTableModel tableModel;
     private ArrayList<Product> products;
     private ArrayList<Product> filteredProducts;
-    private JButton sellBtn;
+    private JButton addToCartBtn, sellBtn, cancelBtn;
+
+    // ---- Single-dialog customer model ----
+    static class Customer {
+        final String name;
+        final String contact;
+
+        Customer(String name, String contact) {
+            this.name = name;
+            this.contact = contact;
+        }
+    }
 
     public SellProductPage() {
-        setTitle("Sell Product");
-        setSize(600, 400);
+        setTitle("Sell Products");
+        setSize(700, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -27,62 +40,87 @@ public class SellProductPage extends JFrame {
         setContentPane(panel);
 
         JLabel searchLabel = new JLabel("Search Product:");
-        searchLabel.setBounds(40, 30, 120, 25);
+        searchLabel.setBounds(30, 20, 120, 25);
         searchLabel.setForeground(Color.WHITE);
         panel.add(searchLabel);
 
         searchField = new JTextField();
-        searchField.setBounds(170, 30, 250, 25);
+        searchField.setBounds(150, 20, 200, 25);
         panel.add(searchField);
 
         productComboBox = new JComboBox<>();
-        productComboBox.setBounds(170, 65, 250, 25);
-        productComboBox.setEditable(false);
+        productComboBox.setBounds(150, 55, 200, 25);
         panel.add(productComboBox);
 
         resultLabel = new JLabel("");
-        resultLabel.setBounds(40, 100, 500, 25);
+        resultLabel.setBounds(30, 90, 500, 25);
         resultLabel.setForeground(Color.WHITE);
         panel.add(resultLabel);
 
         JLabel quantityLabel = new JLabel("Quantity:");
-        quantityLabel.setBounds(40, 140, 120, 25);
+        quantityLabel.setBounds(30, 125, 100, 25);
         quantityLabel.setForeground(Color.WHITE);
         panel.add(quantityLabel);
 
         quantityField = new JTextField();
-        quantityField.setBounds(170, 140, 100, 25);
+        quantityField.setBounds(150, 125, 100, 25);
         panel.add(quantityField);
 
-        sellBtn = createRoundedButton("Sell");
-        sellBtn.setBounds(290, 140, 120, 30);
-        sellBtn.setEnabled(false);
+        addToCartBtn = createRoundedButton("Add to Cart");
+        addToCartBtn.setBounds(270, 125, 170, 30);
+        panel.add(addToCartBtn);
+
+        tableModel = new DefaultTableModel(new String[]{"Name", "Quantity"}, 0);
+        orderTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(orderTable);
+        scrollPane.setBounds(30, 170, 500, 150);
+        panel.add(scrollPane);
+
+        sellBtn = createRoundedButton("Sell All");
+        sellBtn.setBounds(400, 340, 120, 35);
         panel.add(sellBtn);
 
         JButton backBtn = createRoundedButton("Back");
-        backBtn.setBounds(20, 320, 100, 40);
+        backBtn.setBounds(30, 400, 100, 40);
         panel.add(backBtn);
 
-        // Load products
+        cancelBtn = createRoundedButton("Cancel");
+        cancelBtn.setBounds(150, 400, 100, 40);
+        panel.add(cancelBtn);
+
         loadProducts();
         filteredProducts = new ArrayList<>(products);
         updateComboBox();
 
-        // Listeners
         searchField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) { filterProducts(); }
-            @Override
-            public void removeUpdate(DocumentEvent e) { filterProducts(); }
-            @Override
-            public void changedUpdate(DocumentEvent e) { filterProducts(); }
+            public void insertUpdate(DocumentEvent e) {
+                filterProducts();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                filterProducts();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                filterProducts();
+            }
         });
 
         productComboBox.addActionListener(e -> updateResultLabel());
+        addToCartBtn.addActionListener(e -> addToCart());
+        sellBtn.addActionListener(e -> sellAll());
 
-        sellBtn.addActionListener(e -> sellProduct());
+        cancelBtn.addActionListener(e -> {
+            quantityField.setText("");
+            searchField.setText("");
+            tableModel.setRowCount(0);
+            filteredProducts = new ArrayList<>(products);
+            updateComboBox();
+        });
 
         backBtn.addActionListener(e -> {
+            // NOTE: this assumes you have an OwnerDashboard class.
+            // If not, comment these two lines.
             new OwnerDashboard();
             dispose();
         });
@@ -92,7 +130,15 @@ public class SellProductPage extends JFrame {
 
     private void loadProducts() {
         products = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader("products.txt"))) {
+        File f = new File("products.txt");
+        if (!f.exists()) {
+            // Optional: create file if missing
+            try {
+                f.createNewFile();
+            } catch (IOException ignored) {
+            }
+        }
+        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\|");
@@ -135,46 +181,37 @@ public class SellProductPage extends JFrame {
         for (Product p : filteredProducts) {
             productComboBox.addItem(p.getName());
         }
-        if (filteredProducts.isEmpty()) {
-            resultLabel.setText("No products found.");
-            sellBtn.setEnabled(false);
-        } else {
+        if (!filteredProducts.isEmpty()) {
             productComboBox.setSelectedIndex(0);
             updateResultLabel();
+        } else {
+            resultLabel.setText("No product found");
         }
     }
 
     private void updateResultLabel() {
         int selectedIndex = productComboBox.getSelectedIndex();
-        if (selectedIndex < 0 || filteredProducts.isEmpty()) {
-            resultLabel.setText("");
-            sellBtn.setEnabled(false);
-            return;
+        if (selectedIndex >= 0 && selectedIndex < filteredProducts.size()) {
+            Product p = filteredProducts.get(selectedIndex);
+            resultLabel.setText("Stock: " + p.getQuantity() + " | Price: " + p.getPrice());
         }
-        Product selectedProduct = filteredProducts.get(selectedIndex);
-        resultLabel.setText("Stock: " + selectedProduct.getQuantity() + " | Price: $" + selectedProduct.getPrice());
-        sellBtn.setEnabled(selectedProduct.getQuantity() > 0);
     }
 
-    private void sellProduct() {
+    private void addToCart() {
         int selectedIndex = productComboBox.getSelectedIndex();
-        if (selectedIndex < 0 || filteredProducts.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please select a product.");
-            return;
-        }
-        Product selectedProduct = filteredProducts.get(selectedIndex);
+        if (selectedIndex < 0 || selectedIndex >= filteredProducts.size()) return;
 
         String qtyText = quantityField.getText().trim();
         if (qtyText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please enter quantity.");
+            JOptionPane.showMessageDialog(this, "Please enter a quantity.");
             return;
         }
 
-        int sellQty;
+        int qty;
         try {
-            sellQty = Integer.parseInt(qtyText);
-            if (sellQty <= 0) {
-                JOptionPane.showMessageDialog(this, "Quantity must be positive.");
+            qty = Integer.parseInt(qtyText);
+            if (qty <= 0) {
+                JOptionPane.showMessageDialog(this, "Quantity must be greater than 0.");
                 return;
             }
         } catch (NumberFormatException ex) {
@@ -182,44 +219,150 @@ public class SellProductPage extends JFrame {
             return;
         }
 
-        if (sellQty > selectedProduct.getQuantity()) {
+        Product selectedProduct = filteredProducts.get(selectedIndex);
+        if (qty > selectedProduct.getQuantity()) {
             JOptionPane.showMessageDialog(this, "Not enough stock.");
             return;
         }
 
-        // Update stock
-        selectedProduct.setQuantity(selectedProduct.getQuantity() - sellQty);
-        saveProducts();
+        tableModel.addRow(new Object[]{selectedProduct.getName(), qty});
+        quantityField.setText("");
+    }
 
-        // Generate & show bill
-        String bill = generateBill(selectedProduct, sellQty);
-        JTextArea textArea = new JTextArea(bill);
+    // ---- Single dialog for customer info ----
+    private Optional<Customer> promptCustomerInfo() {
+        JTextField nameField = new JTextField();
+        JTextField contactField = new JTextField();
+
+        JPanel form = new JPanel(new GridBagLayout());
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.insets = new Insets(6, 6, 6, 6);
+
+        gc.gridx = 0;
+        gc.gridy = 0;
+        gc.anchor = GridBagConstraints.EAST;
+        form.add(new JLabel("Customer Name:"), gc);
+        gc.gridx = 1;
+        gc.gridy = 0;
+        gc.anchor = GridBagConstraints.WEST;
+        nameField.setColumns(16);
+        form.add(nameField, gc);
+
+        gc.gridx = 0;
+        gc.gridy = 1;
+        gc.anchor = GridBagConstraints.EAST;
+        form.add(new JLabel("Contact Number:"), gc);
+        gc.gridx = 1;
+        gc.gridy = 1;
+        gc.anchor = GridBagConstraints.WEST;
+        contactField.setColumns(16);
+        form.add(contactField, gc);
+
+        while (true) {
+            int result = JOptionPane.showConfirmDialog(
+                    this, form, "Customer Info",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            if (result != JOptionPane.OK_OPTION) {
+                return Optional.empty();
+            }
+
+            String name = nameField.getText().trim();
+            String contact = contactField.getText().trim();
+
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter customer name.");
+                continue;
+            }
+            if (contact.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter contact number.");
+                continue;
+            }
+            if (!contact.matches("\\+?\\d[\\d\\s-]{5,}")) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid contact number.");
+                continue;
+            }
+
+            return Optional.of(new Customer(name, contact));
+        }
+    }
+
+    private void sellAll() {
+        if (tableModel.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "Cart is empty.");
+            return;
+        }
+
+        // 🔥 One dialog for both fields
+        Optional<Customer> customerOpt = promptCustomerInfo();
+        if (!customerOpt.isPresent()) return; // user cancelled
+        Customer customer = customerOpt.get();
+
+        double total = 0;
+        StringBuilder bill = new StringBuilder();
+        bill.append("----- INVOICE -----\n");
+
+        // Build invoice and deduct stock
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            String nameP = tableModel.getValueAt(i, 0).toString();
+            int qty = Integer.parseInt(tableModel.getValueAt(i, 1).toString());
+
+            // Find product by name in master list
+            Product product = products.stream()
+                    .filter(p -> p.getName().equals(nameP))
+                    .findFirst()
+                    .orElse(null);
+
+            if (product == null) continue; // should not happen
+
+            if (qty > product.getQuantity()) {
+                JOptionPane.showMessageDialog(this,
+                        "Insufficient stock for " + nameP + ". Skipped.");
+                continue;
+            }
+
+            double price = product.getPrice();
+            total += price * qty;
+            product.setQuantity(product.getQuantity() - qty);
+
+            bill.append(nameP)
+                    .append(" x").append(qty)
+                    .append(" = $").append(String.format("%.2f", qty * price))
+                    .append("\n");
+        }
+
+        bill.append("-------------------\n");
+        bill.append("Total: ").append(String.format("%.2f", total)).append("\n");
+        bill.append("Customer: ").append(customer.name).append("\n");
+        bill.append("Contact: ").append(customer.contact).append("\n");
+        bill.append("Date: ").append(java.time.LocalDate.now()).append("\n");
+
+        saveProducts();
+        saveCustomerOrder(customer.name, customer.contact, bill.toString());
+
+        JTextArea textArea = new JTextArea(bill.toString());
         textArea.setEditable(false);
         textArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
         JScrollPane scrollPane = new JScrollPane(textArea);
         scrollPane.setPreferredSize(new Dimension(400, 300));
+        JOptionPane.showMessageDialog(this, scrollPane, "Invoice", JOptionPane.INFORMATION_MESSAGE);
 
-        int option = JOptionPane.showConfirmDialog(this, scrollPane, "Invoice", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (option == JOptionPane.OK_OPTION) {
-            quantityField.setText("");
-            searchField.setText("");
-            filteredProducts = new ArrayList<>(products);
-            updateComboBox();
-        }
+        // reset UI
+        tableModel.setRowCount(0);
+        quantityField.setText("");
+        searchField.setText("");
+        filteredProducts = new ArrayList<>(products);
+        updateComboBox();
     }
 
-    private String generateBill(Product p, int qty) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("------ INVOICE ------\n");
-        sb.append("Product: ").append(p.getName()).append("\n");
-        sb.append("Quantity Sold: ").append(qty).append("\n");
-        sb.append("Price per unit: $").append(String.format("%.2f", p.getPrice())).append("\n");
-        sb.append("---------------------\n");
-        sb.append("Total Price: $").append(String.format("%.2f", qty * p.getPrice())).append("\n");
-        sb.append("---------------------\n");
-        sb.append("Thank you for your purchase!\n");
-        sb.append("Date: ").append(java.time.LocalDate.now()).append("\n");
-        return sb.toString();
+    private void saveCustomerOrder(String name, String contact, String details) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("customer_orders.txt", true))) {
+            writer.write("--- ORDER ---\n");
+            writer.write(details);
+            writer.newLine();
+        } catch (IOException e) {
+            System.err.println("Error saving order: " + e.getMessage());
+        }
     }
 
     private JButton createRoundedButton(String text) {
@@ -255,40 +398,24 @@ public class SellProductPage extends JFrame {
         button.setFont(new Font("Arial", Font.BOLD, 16));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(hoverColor);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(normalColor);
-            }
-        });
-
         return button;
     }
 
-    // Background panel with image
     private static class BackgroundPanel extends JPanel {
         private Image backgroundImage;
 
         public BackgroundPanel(String imagePath) {
-            try {
-                backgroundImage = new ImageIcon(imagePath).getImage();
-            } catch (Exception e) {
-                System.err.println("Could not load background image: " + imagePath);
-            }
+            backgroundImage = new ImageIcon(imagePath).getImage();
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            if (backgroundImage != null)
-                g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
-            else
-                setBackground(Color.DARK_GRAY);
+            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
         }
     }
 
+    // ---- Product model ----
     static class Product {
         private String name;
         private int quantity;
@@ -304,16 +431,29 @@ public class SellProductPage extends JFrame {
             this.company = company;
         }
 
-        public String getName() { return name; }
-        public int getQuantity() { return quantity; }
-        public double getPrice() { return price; }
-        public String getExpiry() { return expiry; }
-        public String getCompany() { return company; }
+        public String getName() {
+            return name;
+        }
 
-        public void setQuantity(int quantity) { this.quantity = quantity; }
+        public int getQuantity() {
+            return quantity;
+        }
+
+        public double getPrice() {
+            return price;
+        }
+
+        public String getExpiry() {
+            return expiry;
+        }
+
+        public String getCompany() {
+            return company;
+        }
+
+        public void setQuantity(int quantity) {
+            this.quantity = quantity;
+        }
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(SellProductPage::new);
-    }
 }
