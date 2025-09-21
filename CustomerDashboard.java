@@ -1,48 +1,54 @@
-import java.awt.*;
 import javax.swing.*;
-
+import java.awt.*;
 
 public class CustomerDashboard extends JFrame {
+
     public CustomerDashboard() {
         setTitle("Customer Dashboard");
         setSize(600, 400);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        BackgroundPanel panel = new BackgroundPanel("photo/2.jpg");
+        JPanel panel = new BackgroundPanel("photo/home.jpg");
         panel.setLayout(null);
 
         JLabel titleLabel = new JLabel("Customer Dashboard");
         titleLabel.setBounds(180, 20, 300, 40);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        titleLabel.setForeground(Color.black);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setForeground(Color.WHITE);
         panel.add(titleLabel);
 
-        // Button 1: Order Product
-        JButton orderProductBtn = createRoundedButton("Order Product");
-        orderProductBtn.setBounds(200, 100, 200, 40);
-        orderProductBtn.addActionListener(e -> {
-            new OrderProductPage();  // You'll need to create this page for ordering
+        JButton searchOrderBtn = createRoundedButton("Search & Order Medicine");
+        searchOrderBtn.setBounds(180, 100, 240, 40);
+        searchOrderBtn.addActionListener(e -> {
+            new SearchOrderPage();
             dispose();
         });
-        panel.add(orderProductBtn);
+        panel.add(searchOrderBtn);
 
-        // Button 2: Check Availability
         JButton checkAvailabilityBtn = createRoundedButton("Check Availability");
-        checkAvailabilityBtn.setBounds(200, 160, 200, 40);
+        checkAvailabilityBtn.setBounds(180, 160, 240, 40);
         checkAvailabilityBtn.addActionListener(e -> {
-            new CheckAvailabilityPage();  // You'll need to create this page for availability checking
+            new CheckAvailabilityPage();
             dispose();
         });
         panel.add(checkAvailabilityBtn);
 
-        JButton backButton = createRoundedButton("Back");
-        backButton.setBounds(10, 300, 100, 35);
-        backButton.addActionListener(e -> {
+        JButton trackOrderBtn = createRoundedButton("Track My Orders");
+        trackOrderBtn.setBounds(180, 220, 240, 40);
+        trackOrderBtn.addActionListener(e -> {
+            new OrderTrackingPage();
+            dispose();
+        });
+        panel.add(trackOrderBtn);
+
+        JButton logoutBtn = createRoundedButton("Logout");
+        logoutBtn.setBounds(180, 280, 240, 40);
+        logoutBtn.addActionListener(e -> {
             new LoginPage();
             dispose();
         });
-        panel.add(backButton);
+        panel.add(logoutBtn);
 
         add(panel);
         setVisible(true);
@@ -50,7 +56,7 @@ public class CustomerDashboard extends JFrame {
 
     private JButton createRoundedButton(String text) {
         Color normalColor = new Color(0, 102, 204);
-        Color hoverColor = new Color(51, 153, 255); // Lighter blue for hover
+        Color hoverColor = new Color(51, 153, 255);
 
         JButton button = new JButton(text) {
             @Override
@@ -62,13 +68,12 @@ public class CustomerDashboard extends JFrame {
                 super.paintComponent(g);
                 g2.dispose();
             }
-
             @Override
             protected void paintBorder(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getForeground());
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 30, 30);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 30, 30);
                 g2.dispose();
             }
         };
@@ -80,14 +85,10 @@ public class CustomerDashboard extends JFrame {
         button.setBackground(normalColor);
         button.setFont(new Font("Arial", Font.BOLD, 16));
 
-        // Add hover effect
         button.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 button.setBackground(hoverColor);
             }
-
-            @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 button.setBackground(normalColor);
             }
@@ -96,8 +97,7 @@ public class CustomerDashboard extends JFrame {
         return button;
     }
 
-
-    class BackgroundPanel extends JPanel {
+    static class BackgroundPanel extends JPanel {
         private Image backgroundImage;
 
         public BackgroundPanel(String imagePath) {
@@ -109,5 +109,9 @@ public class CustomerDashboard extends JFrame {
             super.paintComponent(g);
             g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
         }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(CustomerDashboard::new);
     }
 }
