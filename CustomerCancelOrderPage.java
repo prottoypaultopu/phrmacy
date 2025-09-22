@@ -79,7 +79,7 @@ public class CustomerCancelOrderPage extends JFrame {
             return;
         }
 
-        // Remove from customer_orders.txt
+       
         orderListModel.removeElement(selected);
         saveRemainingOrders();
         JOptionPane.showMessageDialog(this, "Order cancelled.");
@@ -100,3 +100,4 @@ public class CustomerCancelOrderPage extends JFrame {
         SwingUtilities.invokeLater(CustomerCancelOrderPage::new);
     }
 }
+
