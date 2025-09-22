@@ -102,7 +102,7 @@ public class OrderTrackingPage extends JFrame {
 
             while ((line = br.readLine()) != null) {
                 if (line.trim().equals("--- ORDER ---")) {
-                    // Save previous order if it matches
+                    
                     if (orderStarted && contactMatches && currentOrder.length() > 0) {
                         String orderWithStatus = currentOrder.toString().replace("Status: PENDING", "Status: " + status);
                         orders.add(orderWithStatus);
@@ -222,4 +222,5 @@ public class OrderTrackingPage extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(OrderTrackingPage::new);
     }
+
 }
