@@ -18,7 +18,6 @@ public class SellProductPage extends JFrame {
     private ArrayList<Product> filteredProducts;
     private JButton addToCartBtn, sellBtn, cancelBtn;
 
-    // ---- Single-dialog customer model ----
     static class Customer {
         final String name;
         final String contact;
@@ -41,7 +40,7 @@ public class SellProductPage extends JFrame {
 
         JLabel searchLabel = new JLabel("Search Product:");
         searchLabel.setBounds(30, 20, 120, 25);
-        searchLabel.setForeground(Color.WHITE);
+        searchLabel.setForeground(Color.black);
         panel.add(searchLabel);
 
         searchField = new JTextField();
@@ -59,7 +58,7 @@ public class SellProductPage extends JFrame {
 
         JLabel quantityLabel = new JLabel("Quantity:");
         quantityLabel.setBounds(30, 125, 100, 25);
-        quantityLabel.setForeground(Color.WHITE);
+        quantityLabel.setForeground(Color.black);
         panel.add(quantityLabel);
 
         quantityField = new JTextField();
@@ -111,7 +110,7 @@ public class SellProductPage extends JFrame {
         sellBtn.addActionListener(e -> sellAll());
 
         cancelBtn.addActionListener(e -> {
-            quantityField.setText("");
+            quantityField.setText("");//refresh kortechi
             searchField.setText("");
             tableModel.setRowCount(0);
             filteredProducts = new ArrayList<>(products);
@@ -119,8 +118,6 @@ public class SellProductPage extends JFrame {
         });
 
         backBtn.addActionListener(e -> {
-            // NOTE: this assumes you have an OwnerDashboard class.
-            // If not, comment these two lines.
             new OwnerDashboard();
             dispose();
         });
@@ -132,7 +129,6 @@ public class SellProductPage extends JFrame {
         products = new ArrayList<>();
         File f = new File("products.txt");
         if (!f.exists()) {
-            // Optional: create file if missing
             try {
                 f.createNewFile();
             } catch (IOException ignored) {
@@ -229,7 +225,6 @@ public class SellProductPage extends JFrame {
         quantityField.setText("");
     }
 
-    // ---- Single dialog for customer info ----
     private Optional<Customer> promptCustomerInfo() {
         JTextField nameField = new JTextField();
         JTextField contactField = new JTextField();
@@ -356,7 +351,7 @@ public class SellProductPage extends JFrame {
     }
 
     private void saveCustomerOrder(String name, String contact, String details) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("customer_orders.txt", true))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("offline_sales.txt", true))) {
             writer.write("--- ORDER ---\n");
             writer.write(details);
             writer.newLine();
