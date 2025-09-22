@@ -12,10 +12,10 @@ public class LoginPage extends JFrame {
         BackgroundPanel panel = new BackgroundPanel("photo/home.jpg");
         panel.setLayout(null);
 
-        JLabel welcomeLabel = new JLabel("--Welcome to Medicine Shop--");
+        JLabel welcomeLabel = new JLabel("Welcome to Medicine Shop");
         welcomeLabel.setBounds(105, 50, 700, 100);
         welcomeLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        welcomeLabel.setForeground(Color.black);
+        welcomeLabel.setForeground(Color.white);
         panel.add(welcomeLabel);
 
         JButton ownerBtn = createRoundedButton("Login as Owner");
@@ -29,13 +29,13 @@ public class LoginPage extends JFrame {
         ownerBtn.addActionListener(e -> {
             JPasswordField passwordField = new JPasswordField();
             Object[] message = {
-                    "Enter Owner Password:", passwordField
+                    "Password:", passwordField
             };
             int option = JOptionPane.showConfirmDialog(this, message, "Owner Login", JOptionPane.OK_CANCEL_OPTION);
             if (option == JOptionPane.OK_OPTION) {
                 char[] passwordChars = passwordField.getPassword();
                 String password = new String(passwordChars);
-                if (password.equals("topu")) {
+                if (password.equals("1234")) {
                     new OwnerDashboard();
                     dispose();
                 } else {
@@ -80,13 +80,14 @@ public class LoginPage extends JFrame {
         };
 
         button.setFocusPainted(false);
+
+
         button.setContentAreaFilled(false);
         button.setOpaque(false);
         button.setForeground(Color.WHITE);
         button.setBackground(normalColor);
         button.setFont(new Font("Arial", Font.BOLD, 16));
 
-        // Add hover effect
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
