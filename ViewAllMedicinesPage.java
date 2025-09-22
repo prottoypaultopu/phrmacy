@@ -1,8 +1,8 @@
 import java.awt.*;
 import java.io.*;
+import java.time.LocalDate;
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-
+import javax.swing.table.*;
 
 public class ViewAllMedicinesPage extends JFrame {
     private JTable table;
@@ -22,7 +22,7 @@ public class ViewAllMedicinesPage extends JFrame {
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table read-only
+                return false;
             }
         };
 
@@ -34,7 +34,7 @@ public class ViewAllMedicinesPage extends JFrame {
 
         JButton backBtn = createRoundedButton("Back");
         backBtn.addActionListener(e -> {
-            new OwnerDashboard(); // You must have this class defined elsewhere
+            new OwnerDashboard();
             dispose();
         });
 
@@ -55,7 +55,49 @@ public class ViewAllMedicinesPage extends JFrame {
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("\\|");
                 if (parts.length >= 5) {
-                    tableModel.addRow(parts);
+                    int quantity = Integer.parseInt(parts[1].trim());
+                    String expiryStr = parts[3].trim();
+                    LocalDate expiryDate;
+                    boolean isExpiringSoon = false;
+
+                    try {
+                        expiryDate = LocalDate.parse(expiryStr);
+                        LocalDate today = LocalDate.now();
+                        if (!expiryDate.isBefore(today) && expiryDate.minusDays(30).isBefore(today)) {
+                            isExpiringSoon = true;
+                        }
+                    } catch (Exception ex) {
+                        expiryDate = null;
+                    }
+
+                    Object[] row = parts;
+
+                    tableModel.addRow(row);
+
+                    table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+                        @Override
+                        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                                       boolean hasFocus, int row, int column) {
+                            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                            int qty = Integer.parseInt(table.getValueAt(row, 1).toString());
+                            String expiry = table.getValueAt(row, 3).toString();
+                            LocalDate now = LocalDate.now();
+                            boolean expiring = false;
+                            try {
+                                LocalDate exp = LocalDate.parse(expiry);
+                                expiring = !exp.isBefore(now) && exp.minusDays(30).isBefore(now);
+                            } catch (Exception ignored) {}
+
+                            if (qty <= 5) {
+                                c.setForeground(Color.RED);
+                            } else if (expiring) {
+                                c.setForeground(Color.ORANGE);
+                            } else {
+                                c.setForeground(Color.BLACK);
+                            }
+                            return c;
+                        }
+                    });
                 }
             }
         } catch (IOException ex) {
@@ -71,7 +113,7 @@ public class ViewAllMedicinesPage extends JFrame {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); // ✅ FIXED HERE
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
                 super.paintComponent(g);
@@ -81,7 +123,7 @@ public class ViewAllMedicinesPage extends JFrame {
             @Override
             protected void paintBorder(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); // ✅ FIXED HERE
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getForeground());
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 30, 30);
                 g2.dispose();
@@ -108,7 +150,6 @@ public class ViewAllMedicinesPage extends JFrame {
         return button;
     }
 
-    // Background panel with image
     public static class BackgroundPanel extends JPanel {
         private Image backgroundImage;
 
